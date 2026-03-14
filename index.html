@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surah Al-Mulk: Interactive Master</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --bg: #f4f7f6; --hint: #f39c12; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 10px; color: var(--primary); }
+        .quiz-card { background: white; width: 100%; max-width: 700px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        .progress-bar { font-weight: bold; color: var(--accent); font-size: 1.1rem; margin-bottom: 10px; }
+        .mode-indicator { font-size: 0.9rem; color: #7f8c8d; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+        .drop-zone { min-height: 80px; border: 2px dashed var(--accent); border-radius: 12px; margin: 15px 0; padding: 15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; background: #fafafa; }
+        .word-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; padding: 15px; border-top: 1px solid #eee; }
+        .word { background: var(--accent); color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: 500; user-select: none; }
+        .word:hover { transform: translateY(-2px); opacity: 0.9; }
+        .word.placed { background: var(--primary); }
+        .word.blank-space { background: #dfe6e9; color: transparent; border: 1px dashed #b2bec3; cursor: default; }
+        .word.hint-highlight { background: var(--hint) !important; animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+        .status-msg { margin-top: 15px; font-weight: bold; min-height: 1.5em; }
+        .controls { margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-mode { background: var(--primary); color: white; }
+        .btn-hint { background: var(--hint); color: white; }
+        .btn-reset { background: #95a5a6; color: white; }
+        .btn-next { background: var(--success); color: white; display: none; }
+        .correct-state { border-color: var(--success) !important; background: #f0fff4 !important; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-card">
+    <div class="progress-bar" id="progress-text">Verse 1 of 30</div>
+    <div class="mode-indicator" id="mode-text">Mode: Order Verse</div>
+    
+    <div class="drop-zone" id="drop-zone"></div>
+    <div class="word-bank" id="word-bank"></div>
+    <div id="status-msg" class="status-msg"></div>
+
+    <div class="controls">
+        <button class="btn-mode" onclick="toggleMode()">Switch Mode</button>
+        <button class="btn-hint" onclick="giveHint()">Get Hint</button>
+        <button class="btn-reset" onclick="initVerse()">Reset</button>
+        <button id="next-btn" class="btn-next" onclick="nextVerse()">Next Verse →</button>
+    </div>
+</div>
+
+<script>
+    const surahData = [
+        { id: 1, words: ["Tabāraka", "alladhī", "bi-yadihi", "al-mulku", "wa-huwa", "’alā", "kulli", "shay’in", "qadīr"] },
+        { id: 2, words: ["alladhī", "khalaqa", "al-mawta", "wa-l-hayāta", "li-yabluwakum", "ayyukum", "ahsanu", "’amalan", "wa-huwa", "al-’azīzu", "al-ghafūr"] },
+        { id: 3, words: ["alladhī", "khalaqa", "sab’a", "samāwātin", "tibāqan", "mā", "tarā", "fī", "khalqi", "ar-rahmāni", "min", "tafāwutin", "farji’i", "al-basara", "hal", "tarā", "min", "futūr"] },
+        { id: 4, words: ["thumma", "arji’i", "al-basara", "karratayni", "yanqalib", "ilayka", "al-basaru", "khāsi’an", "wa-huwa", "hasīr"] },
+        { id: 5, words: ["wa-laqad", "zayyannā", "as-samā’a", "ad-dunyā", "bi-masābīha", "wa-ja’alnāhā", "rujūman", "lish-shayātīni", "wa-’atadnā", "lahum", "’adhāba", "as-sa’īr"] },
+        { id: 6, words: ["wa-lilladhīna", "kafarū", "bi-rabbihim", "’adhābu", "jahannama", "wa-bi’sa", "al-masīr"] },
+        { id: 7, words: ["idhā", "ulqū", "fīhā", "sami’ū", "lahā", "shahīqan", "wa-hiya", "tafūr"] },
+        { id: 8, words: ["takādu", "tamayyazu", "mina", "al-ghayzi", "kullamā", "ulqiya", "fīhā", "fawjun", "sa’alahum", "khazanatuhā", "alam", "ya’tikum", "nadhīr"] },
+        { id: 9, words: ["qālū", "balā", "qad", "jā’anā", "nadhīrun", "fa-kadh-dhabnā", "wa-qulnā", "mā", "nazzala", "Allāhu", "min", "shay’in", "in", "antum", "illā", "fī", "dalālin", "kabīr"] },
+        { id: 10, words: ["wa-qālū", "law", "kunnā", "nasma’u", "aw", "na’qilu", "mā", "kunnā", "fī", "ashābi", "as-sa’īr"] },
+        { id: 11, words: ["fa-’tarafū", "bi-dhambihim", "fa-suhqan", "li-ashābi", "as-sa’īr"] },
+        { id: 12, words: ["inna", "alladhīna", "yakhshowna", "rabbahum", "bi-l-ghaybi", "lahum", "maghfiratun", "wa-ajrun", "kabīr"] },
+        { id: 13, words: ["wa-asirrū", "qawlakum", "awi", "ijharū", "bihi", "innahu", "’alīmun", "bi-dhāti", "as-sudūr"] },
+        { id: 14, words: ["alā", "ya’lamu", "man", "khalaqa", "wa-huwa", "al-latīfu", "al-khabīr"] },
+        { id: 15, words: ["huwa", "alladhī", "ja’ala", "lakumu", "al-arda", "dhalūlan", "fa-mshū", "fī", "manākibihā", "wa-kulū", "min", "rizqihi", "wa-ilayhi", "an-nushūr"] },
+        { id: 16, words: ["a-amintum", "man", "fī", "as-samā’i", "an", "yakhsifa", "bikumu", "al-arda", "fa-idhā", "hiya", "tamūr"] },
+        { id: 17, words: ["am", "amintum", "man", "fī", "as-samā’i", "an", "yursila", "’alaykum", "hāsiban", "fa-sata’lamūna", "kayfa", "nadhīr"] },
+        { id: 18, words: ["wa-laqad", "kadh-dhaba", "alladhīna", "min", "qablihim", "fa-kayfa", "kāna", "nakīr"] },
+        { id: 19, words: ["awalam", "yaraw", "ilā", "at-tayri", "fawqahum", "sāffātin", "wa-yaqbidna", "mā", "yumsikuhunna", "illā", "ar-rahmānu", "innahu", "bi-kulli", "shay’in", "basīr"] },
+        { id: 20, words: ["am-man", "hādhā", "alladhī", "huwa", "jundun", "lakum", "yansurukum", "min", "dūni", "ar-rahmāni", "ini", "al-kāfirūna", "illā", "fī", "ghurūr"] },
+        { id: 21, words: ["am-man", "hādhā", "alladhī", "yarzuqukum", "in", "amsaka", "rizqahu", "bal", "lajjū", "fī", "’utuwwin", "wa-nufūr"] },
+        { id: 22, words: ["afa-man", "yamshī", "mukibban", "’alā", "wajhihi", "ahdā", "am-man", "yamshī", "sawiyyan", "’alā", "sirātin", "mustaqīm"] },
+        { id: 23, words: ["qul", "huwa", "alladhī", "ansha’akum", "wa-ja’ala", "lakumu", "as-sam’a", "wa-l-absāra", "wa-l-af’idata", "qalīlan", "mā", "tashkurūn"] },
+        { id: 24, words: ["qul", "huwa", "alladhī", "dhara’akum", "fī", "al-ardi", "wa-ilayhi", "tuhsharūn"] },
+        { id: 25, words: ["wa-yaqūlūna", "matā", "hādhā", "al-wa’du", "in", "kuntum", "sādiqīn"] },
+        { id: 26, words: ["qul", "innamā", "al-’ilmu", "’inda", "Allāhi", "wa-innamā", "ana", "nadhīrun", "mubīn"] },
+        { id: 27, words: ["fa-lammā", "ra’awhu", "zulfatan", "sī’at", "wujūhu", "alladhīna", "kafarū", "wa-qīla", "hādhā", "alladhī", "kuntum", "bihi", "tadda’ūn"] },
+        { id: 28, words: ["qul", "ara’aytum", "in", "ahlakaniya", "Allāhu", "wa-man", "ma’iya", "aw", "rahimanā", "fa-man", "yujīru", "al-kāfirīna", "min", "’adhābin", "alīm"] },
+        { id: 29, words: ["qul", "huwa", "ar-rahmānu", "āmannā", "bihi", "wa-’alayhi", "tawakkalnā", "fa-sata’lamūna", "man", "huwa", "fī", "dalālin", "mubīn"] },
+        { id: 30, words: ["qul", "ara’aytum", "in", "asbaha", "mā’ukum", "ghawran", "fa-man", "ya’tīkum", "bi-mā’in", "ma’īn"] }
+    ];
+
+    let currentIdx = 0;
+    let mode = 'order'; // 'order' or 'fill'
+    let userSequence = [];
+    let bankWords = [];
+    let hiddenWordIndex = -1;
+
+    function initVerse() {
+        const verse = surahData[currentIdx];
+        document.getElementById('progress-text').innerText = `Verse ${verse.id} of 30`;
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('status-msg').innerText = "";
+        document.getElementById('drop-zone').classList.remove('correct-state');
+        
+        userSequence = [];
+        bankWords = [...verse.words].sort(() => Math.random() - 0.5);
+
+        if (mode === 'fill') {
+            hiddenWordIndex = Math.floor(Math.random() * verse.words.length);
+        } else {
+            hiddenWordIndex = -1;
+        }
+        render();
+    }
+
+    function toggleMode() {
+        mode = (mode === 'order') ? 'fill' : 'order';
+        document.getElementById('mode-text').innerText = `Mode: ${mode === 'order' ? 'Order Verse' : 'Fill in Blank'}`;
+        initVerse();
+    }
+
+    function render() {
+        const dropEl = document.getElementById('drop-zone');
+        const bankEl = document.getElementById('word-bank');
+        const verse = surahData[currentIdx];
+        dropEl.innerHTML = "";
+        bankEl.innerHTML = "";
+
+        if (mode === 'order') {
+            // Render what user has picked
+            userSequence.forEach((word, i) => {
+                const btn = document.createElement('div');
+                btn.className = 'word placed';
+                btn.innerText = word;
+                btn.onclick = () => { userSequence.splice(i, 1); render(); };
+                dropEl.appendChild(btn);
+            });
+            // Render Bank
+            let tempUserSeq = [...userSequence];
+            bankWords.forEach((word) => {
+                const btn = document.createElement('div');
+                btn.className = 'word';
+                btn.innerText = word;
+                const idx = tempUserSeq.indexOf(word);
+                if (idx > -1) {
+                    btn.style.visibility = "hidden";
+                    tempUserSeq.splice(idx, 1);
+                } else {
+                    btn.onclick = () => { userSequence.push(word); render(); };
+                }
+                bankEl.appendChild(btn);
+            });
+        } else {
+            // Fill in the Blank Mode
+            verse.words.forEach((word, i) => {
+                const btn = document.createElement('div');
+                if (i === hiddenWordIndex && userSequence.length === 0) {
+                    btn.className = 'word blank-space';
+                    btn.innerText = "___";
+                } else {
+                    btn.className = 'word placed';
+                    btn.innerText = (i === hiddenWordIndex) ? userSequence[0] : word;
+                    if (i === hiddenWordIndex) btn.onclick = () => { userSequence = []; render(); };
+                }
+                dropEl.appendChild(btn);
+            });
+            // Bank (All words from verse as choices)
+            bankWords.forEach(word => {
+                const btn = document.createElement('div');
+                btn.className = 'word';
+                btn.innerText = word;
+                btn.onclick = () => { userSequence = [word]; render(); };
+                if (userSequence.includes(word)) btn.style.opacity = "0.3";
+                bankEl.appendChild(btn);
+            });
+        }
+
+        if (isVerseComplete()) checkAnswer();
+    }
+
+    function isVerseComplete() {
+        const targetLen = (mode === 'order') ? surahData[currentIdx].words.length : 1;
+        return userSequence.length === targetLen;
+    }
+
+    function checkAnswer() {
+        const verse = surahData[currentIdx];
+        let correct = false;
+        if (mode === 'order') {
+            correct = JSON.stringify(userSequence) === JSON.stringify(verse.words);
+        } else {
+            correct = userSequence[0] === verse.words[hiddenWordIndex];
+        }
+
+        const msg = document.getElementById('status-msg');
+        if (correct) {
+            msg.innerText = "✨ Excellent! Correct.";
+            msg.style.color = "var(--success)";
+            document.getElementById('drop-zone').classList.add('correct-state');
+            document.getElementById('next-btn').style.display = "block";
+        } else {
+            msg.innerText = "❌ Keep trying!";
+            msg.style.color = "var(--danger)";
+        }
+    }
+
+    function giveHint() {
+        const verse = surahData[currentIdx];
+        let targetWord = "";
+        
+        if (mode === 'order') {
+            targetWord = verse.words[userSequence.length];
+        } else {
+            targetWord = verse.words[hiddenWordIndex];
+        }
+
+        const buttons = document.querySelectorAll('#word-bank .word');
+        buttons.forEach(btn => {
+            if (btn.innerText === targetWord && btn.style.visibility !== "hidden") {
+                btn.classList.add('hint-highlight');
+                setTimeout(() => btn.classList.remove('hint-highlight'), 1000);
+            }
+        });
+    }
+
+    function nextVerse() {
+        if (currentIdx < surahData.length - 1) {
+            currentIdx++;
+            initVerse();
+        } else {
+            alert("Mubarak! Surah Complete!");
+        }
+    }
+
+    window.onload = initVerse;
+</script>
+</body>
+</html>
