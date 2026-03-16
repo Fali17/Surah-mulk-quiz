@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surah Al-Mulk: Master Recitation Edition</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --bg: #f4f7f6; --hint: #f39c12; --audio: #8e44ad; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 10px; color: var(--primary); }
+        .quiz-card { background: white; width: 100%; max-width: 800px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        .stats-bar { display: flex; justify-content: space-between; background: #eee; padding: 10px 20px; border-radius: 50px; margin-bottom: 15px; font-weight: bold; }
+        .points-text { color: var(--success); }
+        .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 15px; }
+        select, button { padding: 10px 14px; border-radius: 8px; border: 1px solid #ccc; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.95); }
+        .drop-zone { min-height: 80px; border: 2px dashed var(--accent); border-radius: 12px; margin: 15px 0; padding: 15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; background: #fafafa; }
+        .word-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 15px; padding: 15px; border-top: 1px solid #eee; }
+        .word { background: var(--accent); color: white; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; user-select: none; }
+        .word.placed { background: var(--primary); }
+        .status-msg { margin-top: 15px; font-weight: bold; min-height: 1.5em; }
+        .btn-next { background: var(--success); color: white; display: none; width: 100%; margin-top: 10px; padding: 15px; border: none; font-size: 1.1rem; border-radius: 10px; }
+        .nav-btn { background: #95a5a6; color: white; border: none; }
+        .correct-state { border-color: var(--success) !important; background: #f0fff4 !important; }
+        .toggle-active { background: #2ecc71 !important; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-card">
+    <div class="stats-bar" id="stats-ui">
+        <span>Verse <span id="v-num">1</span>/30</span>
+        <span class="points-text" id="score-display">Score: <span id="score">100</span></span>
+    </div>
+
+    <div class="controls">
+        <select id="reciter-select">
+            <optgroup label="Sheikh Al-Minshawi">
+                <option value="6">Siddiq al-Minshawi (Murattal)</option>
+                <option value="9">Siddiq al-Minshawi (Teacher/Kids)</option>
+                <option value="168">Siddiq al-Minshawi (High Quality Murattal)</option>
+            </optgroup>
+            <optgroup label="Sheikh Al-Husary">
+                <option value="12">Mahmoud Khalil Al-Husary</option>
+                <option value="125">Al-Husary (Muallim/Teacher)</option>
+            </optgroup>
+            <optgroup label="Large Selection">
+                <option value="7">Mishary Rashid Alafasy</option>
+                <option value="1">Abdul Basit (Mujawwad)</option>
+                <option value="2">Abdul Basit (Murattal)</option>
+                <option value="3">Abdur-Rahman as-Sudais</option>
+                <option value="4">Abu Bakr al-Shatri</option>
+                <option value="10">Saud al-Shuraim</option>
+                <option value="5">Hani ar-Rifa'i</option>
+                <option value="13">Ali Al-Huthaify</option>
+            </optgroup>
+        </select>
+        <select id="jump-select" onchange="jumpToVerse(this.value)"></select>
+        <button id="points-toggle" onclick="togglePoints()" class="toggle-active">Points: ON</button>
+    </div>
+
+    <div class="translation" id="trans-text" style="color: #7f8c8d; font-style: italic; margin: 10px 0;"></div>
+    <div class="drop-zone" id="drop-zone"></div>
+    <div class="word-bank" id="word-bank"></div>
+    <div id="status-msg" class="status-msg"></div>
+
+    <div class="controls">
+        <button style="background: var(--audio); color:white;" onclick="playRecitation()">🔊 Listen</button>
+        <button style="background: var(--hint); color:white;" onclick="giveHint()">💡 Hint</button>
+        <button onclick="toggleMode()">🔄 Mode</button>
+        <button class="nav-btn" onclick="prevVerse()">⬅ Prev</button>
+        <button class="nav-btn" onclick="nextVerse()">Next ➡</button>
+    </div>
+
+    <button id="next-btn" class="btn-next" onclick="nextVerse()">Mubarak! Next Verse</button>
+    <audio id="quran-audio"></audio>
+</div>
+
+<script>
+    // Only 3 verses shown for example, but structure works for all 30
+    const surahData = [
+        { id: 1, words: ["Tabāraka", "alladhī", "bi-yadihi", "al-mulku", "wa-huwa", "’alā", "kulli", "shay’in", "qadīr"], trans: "Blessed is He in whose hand is dominion, and He is over all things competent." },
+        { id: 2, words: ["alladhī", "khalaqa", "al-mawta", "wa-l-hayāta", "li-yabluwakum", "ayyukum", "ahsanu", "’amalan", "wa-huwa", "al-’azīzu", "al-ghafūr"], trans: "[He] who created death and life to test you..." },
+        { id: 3, words: ["alladhī", "khalaqa", "sab’a", "samāwātin", "tibāqan", "mā", "tarā", "fī", "khalqi", "ar-rahmāni", "min", "tafāwutin", "farji’i", "al-basara", "hal", "tarā", "min", "futūr"], trans: "[And] who created seven heavens in layers..." }
+        // ... include other verses here
+    ];
+
+    let currentIdx = 0, score = 100, mode = 'order', userSeq = [], bank = [], isCorrect = false, pointsEnabled = true, listenCount = 0;
+
+    function init() {
+        const jump = document.getElementById('jump-select');
+        jump.innerHTML = "";
+        surahData.forEach((v, i) => jump.add(new Option(`Verse ${i+1}`, i)));
+        loadVerse();
+    }
+
+    function togglePoints() {
+        pointsEnabled = !pointsEnabled;
+        const btn = document.getElementById('points-toggle');
+        btn.innerText = pointsEnabled ? "Points: ON" : "Points: OFF";
+        btn.className = pointsEnabled ? "toggle-active" : "";
+        document.getElementById('score-display').style.visibility = pointsEnabled ? "visible" : "hidden";
+    }
+
+    function loadVerse() {
+        isCorrect = false;
+        listenCount = 0;
+        const verse = surahData[currentIdx];
+        document.getElementById('v-num').innerText = currentIdx + 1;
+        document.getElementById('jump-select').value = currentIdx;
+        document.getElementById('trans-text').innerText = verse.trans;
+        document.getElementById('status-msg').innerText = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('drop-zone').classList.remove('correct-state');
+        
+        userSeq = []; 
+        bank = [...verse.words].sort(() => Math.random() - 0.5);
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('score').innerText = score;
+        const dropEl = document.getElementById('drop-zone'), bankEl = document.getElementById('word-bank'), verse = surahData[currentIdx];
+        dropEl.innerHTML = ""; bankEl.innerHTML = "";
+
+        userSeq.forEach((w, i) => {
+            let d = document.createElement('div'); d.className = 'word placed'; d.innerText = w;
+            d.onclick = () => { if(!isCorrect) { userSeq.splice(i,1); updateUI(); } };
+            dropEl.appendChild(d);
+        });
+
+        let tempUser = [...userSeq];
+        bank.forEach(w => {
+            let d = document.createElement('div'); d.className = 'word'; d.innerText = w;
+            if(tempUser.includes(w)) {
+                d.style.visibility = "hidden";
+                tempUser.splice(tempUser.indexOf(w), 1);
+            } else {
+                d.onclick = () => handleSelection(w);
+            }
+            bankEl.appendChild(d);
+        });
+    }
+
+    function handleSelection(w) {
+        if(isCorrect) return;
+        const verse = surahData[currentIdx];
+        if(w === verse.words[userSeq.length]) {
+            userSeq.push(w);
+            if(pointsEnabled) score += 5;
+            document.getElementById('status-msg').innerText = "✅ Word Right!";
+        } else {
+            if(pointsEnabled) score -= 5;
+            document.getElementById('status-msg').innerText = "❌ Try Again!";
+        }
+        
+        if(userSeq.length === verse.words.length) {
+            isCorrect = true;
+            if(pointsEnabled) score += 10;
+            document.getElementById('status-msg').innerText = `✨ Mastered! Listened ${listenCount} times.`;
+            document.getElementById('drop-zone').classList.add('correct-state');
+            document.getElementById('next-btn').style.display = "block";
+        }
+        updateUI();
+    }
+
+    async function playRecitation() {
+        const rId = document.getElementById('reciter-select').value;
+        const vNum = currentIdx + 1;
+        if(!isCorrect && pointsEnabled) { score -= 5; listenCount++; updateUI(); }
+        
+        try {
+            const res = await fetch(`https://api.quran.com/api/v4/recitations/${rId}/by_ayah/67:${vNum}`);
+            const data = await res.json();
+            const audio = document.getElementById('quran-audio');
+            audio.src = data.audio_files[0].url.startsWith('http') ? data.audio_files[0].url : `https://verses.quran.com/${data.audio_files[0].url}`;
+            audio.play();
+        } catch(e) { alert("Reciter Audio Error. Try another Sheikh."); }
+    }
+
+    function giveHint() {
+        if(isCorrect) return;
+        if(pointsEnabled) { score -= 5; updateUI(); }
+        const verse = surahData[currentIdx];
+        let target = verse.words[userSeq.length];
+        
+        const bankWords = document.getElementById('word-bank').children;
+        for(let btn of bankWords) {
+            if(btn.innerText === target && btn.style.visibility !== "hidden") {
+                btn.style.background = "var(--hint)";
+                setTimeout(() => btn.style.background = "var(--accent)", 1000);
+                break;
+            }
+        }
+    }
+
+    function jumpToVerse(val) { currentIdx = parseInt(val); loadVerse(); }
+    function prevVerse() { if(currentIdx > 0) { currentIdx--; loadVerse(); } }
+    function nextVerse() { if(currentIdx < surahData.length - 1) { currentIdx++; loadVerse(); } }
+    function toggleMode() { alert("Switched Practice Mode!"); loadVerse(); }
+
+    window.onload = init;
+</script>
+</body>
+</html>
