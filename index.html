@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surah Al-Mulk: Precision Memorizer</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --bg: #f4f7f6; --hint: #f39c12; --audio: #8e44ad; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 10px; color: var(--primary); }
+        .quiz-card { background: white; width: 100%; max-width: 800px; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        .stats-bar { display: flex; justify-content: space-between; background: #eee; padding: 10px 20px; border-radius: 50px; margin-bottom: 15px; font-weight: bold; }
+        .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 15px; }
+        select, button { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-weight: bold; cursor: pointer; }
+        .drop-zone { min-height: 80px; border: 2px dashed var(--accent); border-radius: 12px; margin: 15px 0; padding: 15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; background: #fafafa; transition: 0.3s; }
+        .word-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 15px; padding: 15px; border-top: 1px solid #eee; min-height: 50px; }
+        .word { background: var(--accent); color: white; padding: 8px 14px; border-radius: 6px; cursor: pointer; user-select: none; font-size: 0.95rem; }
+        .word.placed { background: var(--primary); }
+        .status-msg { margin: 10px 0; font-weight: bold; min-height: 1.5em; }
+        .btn-next { background: var(--success); color: white; display: none; width: 100%; padding: 15px; border: none; font-size: 1.1rem; border-radius: 10px; cursor: pointer; }
+        .correct-state { border-color: var(--success) !important; background: #f0fff4 !important; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-card">
+    <div class="stats-bar">
+        <span>Verse <span id="v-num">1</span>/30</span>
+        <span id="score-display">Score: <span id="score">100</span></span>
+    </div>
+
+    <div class="controls">
+        <select id="reciter-select">
+            <optgroup label="Minshawi">
+                <option value="Minshawi_Teacher_128kbps">Minshawi (Teacher/With Kids)</option>
+                <option value="Minshawy_Murattal_128kbps">Minshawi (Murattal)</option>
+            </optgroup>
+            <optgroup label="Al-Husary">
+                <option value="Husary_Muallim_128kbps">Al-Husary (Teacher/Muallim)</option>
+                <option value="Husary_128kbps">Al-Husary (Murattal)</option>
+            </optgroup>
+            <optgroup label="Others">
+                <option value="Hudhaify_128kbps">Ali Al-Huthaify</option>
+                <option value="Alafasy_128kbps">Mishary Alafasy</option>
+                <option value="Abdul_Basit_Mujawwad_128kbps">Abdul Basit (Mujawwad)</option>
+            </optgroup>
+        </select>
+        <select id="jump-select" onchange="jumpToVerse(this.value)"></select>
+    </div>
+
+    <div id="trans-text" style="color: #7f8c8d; font-style: italic; margin-bottom: 10px;"></div>
+    <div class="drop-zone" id="drop-zone"></div>
+    <div class="word-bank" id="word-bank"></div>
+    <div id="status-msg" class="status-msg"></div>
+
+    <div class="controls">
+        <button style="background: var(--audio); color:white;" onclick="playAudio()">🔊 Listen</button>
+        <button style="background: var(--hint); color:white;" onclick="giveHint()">💡 Hint</button>
+        <button onclick="prevVerse()">⬅ Prev</button>
+        <button onclick="nextVerse()">Next ➡</button>
+    </div>
+
+    <button id="next-btn" class="btn-next" onclick="nextVerse()">Mubarak! Next Verse</button>
+    <audio id="quran-audio"></audio>
+</div>
+
+<script>
+    const surahData = [
+        { id: 1, words: ["Tabāraka", "alladhī", "bi-yadihi", "al-mulku", "wa-huwa", "’alā", "kulli", "shay’in", "qadīr"], trans: "Blessed is He in whose hand is dominion..." },
+        { id: 2, words: ["alladhī", "khalaqa", "al-mawta", "wa-l-hayāta", "li-yabluwakum", "ayyukum", "ahsanu", "’amalan", "wa-huwa", "al-’azīzu", "al-ghafūr"], trans: "[He] who created death and life to test you..." },
+        { id: 3, words: ["alladhī", "khalaqa", "sab’a", "samāwātin", "tibāqan", "mā", "tarā", "fī", "khalqi", "ar-rahmāni", "min", "tafāwutin", "farji’i", "al-basara", "hal", "tarā", "min", "futūr"], trans: "Who created seven heavens in layers..." },
+        { id: 4, words: ["thumma", "arji’i", "al-basara", "karratayni", "yanqalib", "ilayka", "al-basaru", "khāsi’an", "wa-huwa", "hasīr"], trans: "Then return [your] vision twice again..." },
+        { id: 5, words: ["wa-laqad", "zayyannā", "as-samā’a", "ad-dunyā", "bi-masābīha", "wa-ja’alnāhā", "rujūman", "lish-shayātīni", "wa-’atadnā", "lahum", "’adhāba", "as-sa’īr"], trans: "And We have certainly beautified the nearest heaven with stars..." }
+        // Add more verses here...
+    ];
+
+    let currentIdx = 0, score = 100, userSeq = [], isCorrect = false;
+
+    function init() {
+        const jump = document.getElementById('jump-select');
+        surahData.forEach((v, i) => jump.add(new Option(`Verse ${i+1}`, i)));
+        loadVerse();
+    }
+
+    function loadVerse() {
+        isCorrect = false;
+        const verse = surahData[currentIdx];
+        document.getElementById('v-num').innerText = currentIdx + 1;
+        document.getElementById('jump-select').value = currentIdx;
+        document.getElementById('trans-text').innerText = verse.trans;
+        document.getElementById('status-msg').innerText = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('drop-zone').classList.remove('correct-state');
+        userSeq = [];
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('score').innerText = score;
+        const dropEl = document.getElementById('drop-zone'), bankEl = document.getElementById('word-bank'), verse = surahData[currentIdx];
+        dropEl.innerHTML = ""; bankEl.innerHTML = "";
+
+        userSeq.forEach((w, i) => {
+            let d = document.createElement('div'); d.className = 'word placed'; d.innerText = w;
+            d.onclick = () => { if(!isCorrect) { userSeq.splice(i,1); updateUI(); } };
+            dropEl.appendChild(d);
+        });
+
+        let sortedBank = [...verse.words].sort();
+        let tempUser = [...userSeq];
+        sortedBank.forEach(w => {
+            let d = document.createElement('div'); d.className = 'word'; d.innerText = w;
+            if(tempUser.includes(w)) {
+                d.style.visibility = "hidden";
+                tempUser.splice(tempUser.indexOf(w), 1);
+            } else {
+                d.onclick = () => handleSelection(w);
+            }
+            bankEl.appendChild(d);
+        });
+    }
+
+    function handleSelection(w) {
+        if(isCorrect) return;
+        const verse = surahData[currentIdx];
+        if(w === verse.words[userSeq.length]) {
+            userSeq.push(w);
+            score += 5;
+            document.getElementById('status-msg').innerText = "✅ Mashallah!";
+            document.getElementById('status-msg').style.color = "var(--success)";
+        } else {
+            score -= 5;
+            document.getElementById('status-msg').innerText = "❌ Keep trying!";
+            document.getElementById('status-msg').style.color = "var(--danger)";
+        }
+        
+        if(userSeq.length === verse.words.length) {
+            isCorrect = true;
+            score += 10;
+            document.getElementById('drop-zone').classList.add('correct-state');
+            document.getElementById('next-btn').style.display = "block";
+        }
+        updateUI();
+    }
+
+    function playAudio() {
+        const folder = document.getElementById('reciter-select').value;
+        const vNum = currentIdx + 1;
+        const ayahPath = `067${String(vNum).padStart(3, '0')}`;
+        const audio = document.getElementById('quran-audio');
+        
+        // Use EveryAyah primary source
+        audio.src = `https://everyayah.com/data/${folder}/${ayahPath}.mp3`;
+        audio.play().catch(() => {
+            alert("Trying backup audio server...");
+            // Backup link if needed
+            audio.src = `https://mirrors.quranicaudio.com/everyayah/data/${folder}/${ayahPath}.mp3`;
+            audio.play();
+        });
+        
+        if(!isCorrect) score -= 5;
+        updateUI();
+    }
+
+    function giveHint() {
+        if(isCorrect) return;
+        score -= 5;
+        const target = surahData[currentIdx].words[userSeq.length];
+        const bank = document.getElementById('word-bank').children;
+        for(let btn of bank) {
+            if(btn.innerText === target && btn.style.visibility !== "hidden") {
+                btn.style.background = "var(--hint)";
+                setTimeout(() => btn.style.background = "var(--accent)", 1000);
+                break;
+            }
+        }
+        updateUI();
+    }
+
+    function jumpToVerse(val) { currentIdx = parseInt(val); loadVerse(); }
+    function prevVerse() { if(currentIdx > 0) { currentIdx--; loadVerse(); } }
+    function nextVerse() { if(currentIdx < surahData.length - 1) { currentIdx++; loadVerse(); } }
+
+    window.onload = init;
+</script>
+</body>
+</html>
