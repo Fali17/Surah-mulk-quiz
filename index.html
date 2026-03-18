@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surah Al-Mulk Quiz - Ultimate Master</title>
+    <title>Surah Al-Mulk Quiz</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; --error: #e74c3c; --success: #27ae60; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; text-align: center; transition: 0.3s; margin: 0; }
-        .quiz-container { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); position: relative; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; text-align: center; transition: 0.3s; }
+        .quiz-container { max-width: 850px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); position: relative; }
         
-        /* Stats & UI Layout */
-        .stats { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; padding: 12px 20px; background: #f0f0f0; border-radius: 10px; font-size: 1.1rem; }
+        .stats { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; padding: 12px 20px; background: #f0f0f0; border-radius: 10px; }
         .drop-zone { min-height: 120px; border: 2px dashed var(--accent); border-radius: 15px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; padding: 20px; position: relative; background: #fafafa; }
-        .word-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; min-height: 100px; }
-        .word { padding: 12px 18px; border-radius: 8px; background: var(--accent); color: white; cursor: pointer; border: none; font-size: 1.1rem; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .word.placed { background: var(--primary); cursor: default; box-shadow: none; }
+        .word-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; min-height: 100px; }
         
-        .feedback-icon { position: absolute; top: -15px; right: 10px; font-size: 2rem; background: white; border-radius: 50%; padding: 0 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .word { padding: 12px 18px; border-radius: 8px; background: var(--accent); color: white; cursor: pointer; border: none; font-size: 1.1rem; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .word.placed { background: var(--primary); cursor: default; }
+        .feedback-icon { position: absolute; top: -15px; right: 10px; font-size: 2rem; background: white; border-radius: 50%; padding: 0 5px; }
         .hidden { display: none !important; }
         
-        /* Zen Mode Logic - Only hides distractions */
+        /* Zen Mode Logic */
+        body.zen-mode { background: #fff; }
         body.zen-mode .zen-hide { display: none !important; }
         
-        button, select { padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; border: 1px solid #ccc; transition: 0.2s; font-size: 1rem; }
+        button, select { padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; border: 1px solid #ccc; transition: 0.2s; }
         .btn-play { background: #8e44ad; color: white; border: none; }
         .btn-hint { background: var(--error); color: white; border: none; }
         .btn-zen { background: #34495e; color: white; border: none; }
@@ -48,7 +48,7 @@
             <option value="KIDS">Minshawi (Kids Repeat - Auto Stop)</option>
             <option value="MINSHAWI_SOLO">Minshawi (Solo Murattal)</option>
             <option value="ALAFASY">Mishary Alafasy</option>
-            <option value="HUSARY">Al-Husary (Teacher)</option>
+            <option value="HUSARY">Mahmoud Al-Husary</option>
         </select>
         <button class="btn-zen" onclick="toggleZen()">🧘 Toggle Zen Mode</button>
     </div>
@@ -57,26 +57,25 @@
         <div id="feedback" class="feedback-icon"></div>
     </div>
 
-    <div class="zen-hide" style="font-size: 0.9rem; color: #666; margin: 15px 0;">
-        Listened: <strong id="listen-stat">0</strong> times &nbsp;|&nbsp; Hints Used: <strong id="hint-stat">0</strong>
+    <div class="zen-hide" style="font-size: 0.9rem; color: #666; margin: 10px 0;">
+        Listened: <span id="listen-stat">0</span> | Hints: <span id="hint-stat">0</span>
     </div>
 
     <div class="word-bank" id="word-bank"></div>
 
-    <div id="controls" class="zen-hide" style="margin-top: 25px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
+    <div id="controls" class="zen-hide" style="margin-top: 20px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
         <button class="btn-play" onclick="playAudio()">🔊 PLAY VERSE</button>
         <button class="btn-hint" onclick="useHint()">💡 HINT (-5 pts)</button>
-        <button onclick="navVerse(-1)">⬅ Prev Verse</button>
-        <button onclick="navVerse(1)">Next Verse ➡</button>
+        <button onclick="navVerse(-1)">⬅ Prev</button>
+        <button onclick="navVerse(1)">Next ➡</button>
     </div>
 </div>
 
 <audio id="audio-player"></audio>
 
 <script>
-    // HARDCODED TIMESTAMPS EXTRACTED DIRECTLY FROM YOUR segments.json FILE
-    // No external file loading required, works perfectly offline/locally!
-    const verseTimestamps = {
+    // Exact segments from your file for Surah 67 (Minshawi Kids)
+    const kidsSegments = {
         1: [0, 16053], 2: [16053, 39181], 3: [39181, 72065], 4: [72065, 94011], 5: [94011, 127004],
         6: [127004, 144538], 7: [144538, 162447], 8: [162447, 193633], 9: [193633, 229249], 10: [229249, 250695],
         11: [250695, 265410], 12: [265410, 289443], 13: [289443, 308969], 14: [308969, 320075], 15: [320075, 346828],
@@ -94,4 +93,133 @@
         { words: ["wa-lilladhīna", "kafarū", "bi-rabbihim", "’adhābu", "jahannama", "wa-bi’sa", "al-masīr"] },
         { words: ["idhā", "ulqū", "fīhā", "sami’ū", "lahā", "shahīqan", "wa-hiya", "tafūr"] },
         { words: ["takādu", "tamayyazu", "mina", "al-ghayzi", "kullamā", "ulqiya", "fīhā", "fawjun", "sa’alahum", "khazanatuhā", "alam", "ya’tikum", "nadhīr"] },
-        { words: ["qālū", "balā", "qad", "jā’anā", "
+        { words: ["qālū", "balā", "qad", "jā’anā", "nadhīrun", "fa-kadh-dhabnā", "wa-qulnā", "mā", "nazzala", "Allāhu", "min", "shay’in", "in", "antum", "illā", "fī", "dalālin", "kabīr"] },
+        { words: ["wa-qālū", "law", "kunnā", "nasma’u", "aw", "na’qilu", "mā", "kunnā", "fī", "ashābi", "as-sa’īr"] },
+        { words: ["fa-’tarafū", "bi-dhanbihim", "fa-suhqan", "li-ashābi", "as-sa’īr"] },
+        { words: ["inna", "alladhīna", "yakhshawna", "rabbahum", "bi-l-ghaybi", "lahum", "maghfiratun", "wa-ajrun", "kabīr"] },
+        { words: ["wa-asirrū", "qawlakum", "awi", "ijharū", "bihi", "innahu", "’alīmun", "bi-dhāti", "as-sudūr"] },
+        { words: ["alā", "ya’lamu", "man", "khalaqa", "wa-huwa", "al-latīfu", "al-khabīr"] },
+        { words: ["huwa", "alladhī", "ja’ala", "lakumu", "al-arda", "dhalūlan", "fa-mshū", "fī", "manākibihā", "wa-kulū", "min", "rizqihi", "wa-ilayhi", "an-nushūr"] },
+        { words: ["a-amintum", "man", "fī", "as-samā’i", "an", "yakhsifa", "bikumu", "al-arda", "fa-idhā", "hiya", "tamūr"] },
+        { words: ["am", "amintum", "man", "fī", "as-samā’i", "an", "yursila", "’alaykum", "hāsiban", "fa-sata’lamūna", "kayfa", "nadhīr"] },
+        { words: ["wa-laqad", "kadh-dhaba", "alladhīna", "min", "qablihim", "fa-kayfa", "kāna", "nakīr"] },
+        { words: ["a-wa-lam", "yaraw", "ilā", "at-tayri", "fawqahum", "sāffātin", "wa-yaqbidna", "mā", "yumsikuhunna", "illā", "ar-rahmānu", "innahu", "bi-kulli", "shay’in", "basīr"] },
+        { words: ["am-man", "hādha", "alladhī", "huwa", "jundun", "lakum", "yansurukum", "min", "dūni", "ar-rahmāni", "ini", "al-kāfirūna", "illā", "fī", "ghurūr"] },
+        { words: ["am-man", "hādha", "alladhī", "yarzuqukum", "in", "amsaka", "rizqahu", "bal", "lajjū", "fī", "’utuwwin", "wa-nufūr"] },
+        { words: ["a-fa-man", "yamshī", "mukibban", "’alā", "wajhihi", "ahdā", "am-man", "yamshī", "sawiyyan", "’alā", "sirātin", "mustaqīm"] },
+        { words: ["qul", "huwa", "alladhī", "ansha’akum", "wa-ja’ala", "lakumu", "as-sam’a", "wa-l-absāra", "wa-l-af’idata", "qalīlan", "mā", "tashkurūn"] },
+        { words: ["qul", "huwa", "alladhī", "dhara’akum", "fī", "al-ardi", "wa-ilayhi", "tuhsharūn"] },
+        { words: ["wa-yaqūlūna", "matā", "hādha", "al-wa’du", "in", "kuntum", "sādiqīn"] },
+        { words: ["qul", "innamā", "al-’ilmu", "’inda", "Allāhi", "wa-innamā", "ana", "nadhīrun", "mubīn"] },
+        { words: ["fa-lammā", "ra’awhu", "zulfatan", "sī’at", "wujūhu", "alladhīna", "kafarū", "wa-qīla", "hādha", "alladhī", "kuntum", "bihi", "tadda’ūn"] },
+        { words: ["qul", "ara’aytum", "in", "ahlakaniya", "Allāhu", "wa-man", "ma’iya", "aw", "rahimanā", "fa-man", "yujīru", "al-kāfirīna", "min", "’adhābin", "alīm"] },
+        { words: ["qul", "huwa", "ar-rahmānu", "āmannā", "bihi", "wa-’alayhi", "tawakkalnā", "fa-sata’lamūna", "man", "huwa", "fī", "dalālin", "mubīn"] },
+        { words: ["qul", "ara’aytum", "in", "asbaha", "mā’ukum", "ghawran", "fa-man", "ya’tīkum", "bi-mā’in", "ma’īn"] }
+    ];
+
+    let currentV = 0, score = 100, userSeq = [], listens = 0, hints = 0;
+    let stopCheck;
+    const player = document.getElementById('audio-player');
+
+    function initVerse() {
+        userSeq = []; listens = 0; hints = 0;
+        document.getElementById('v-count').innerText = currentV + 1;
+        document.getElementById('feedback').innerText = "";
+        render();
+    }
+
+    function render() {
+        document.getElementById('score').innerText = score;
+        document.getElementById('listen-stat').innerText = listens;
+        document.getElementById('hint-stat').innerText = hints;
+        const drop = document.getElementById('drop-zone');
+        const bank = document.getElementById('word-bank');
+        
+        drop.querySelectorAll('.word').forEach(n => n.remove());
+        bank.innerHTML = "";
+
+        userSeq.forEach(w => {
+            const div = document.createElement('div'); 
+            div.className = 'word placed'; 
+            div.innerText = w;
+            drop.appendChild(div);
+        });
+
+        [...surahText[currentV].words].sort().forEach(w => {
+            const btn = document.createElement('button'); 
+            btn.className = 'word'; 
+            btn.innerText = w;
+            const usedCount = userSeq.filter(x => x === w).length;
+            const totalCount = surahText[currentV].words.filter(x => x === w).length;
+            if(usedCount >= totalCount) btn.classList.add('hidden');
+            btn.onclick = () => selectWord(w, btn);
+            bank.appendChild(btn);
+        });
+    }
+
+    function selectWord(w, btnElement) {
+        const correctWord = surahText[currentV].words[userSeq.length];
+        const fb = document.getElementById('feedback');
+        if(w === correctWord) {
+            userSeq.push(w);
+            fb.innerText = "✅";
+        } else {
+            score = Math.max(0, score - 5);
+            fb.innerText = "❌";
+            if(btnElement) {
+                btnElement.classList.add("shake");
+                setTimeout(() => btnElement.classList.remove("shake"), 300);
+            }
+        }
+        render();
+    }
+
+    function useHint() {
+        const nextWord = surahText[currentV].words[userSeq.length];
+        if(!nextWord) return; 
+        hints++;
+        score = Math.max(0, score - 5);
+        selectWord(nextWord, null);
+    }
+
+    function playAudio() {
+        clearInterval(stopCheck);
+        listens++;
+        const recId = document.getElementById('reciter').value;
+        const vNum = currentV + 1;
+        
+        if (recId === "KIDS") {
+            const range = kidsSegments[vNum];
+            player.src = `https://download.quranicaudio.com/qdc/siddiq_minshawi/kids_repeat/67.mp3`;
+            player.currentTime = range[0] / 1000;
+            player.play();
+
+            stopCheck = setInterval(() => {
+                if (player.currentTime >= (range[1] / 1000) - 0.1) {
+                    player.pause();
+                    clearInterval(stopCheck);
+                }
+            }, 50);
+        } else {
+            const vStr = String(vNum).padStart(3, '0');
+            let folder = (recId === "MINSHAWI_SOLO") ? "Minshawi_Murattal_128kbps" : 
+                         (recId === "ALAFASY") ? "Alafasy_128kbps" : "Husary_Muallim_128kbps";
+            player.src = `https://everyayah.com/data/${folder}/067${vStr}.mp3`;
+            player.play();
+        }
+        render();
+    }
+
+    function toggleZen() { 
+        document.getElementById('game-body').classList.toggle('zen-mode'); 
+    }
+    
+    function navVerse(step) { 
+        currentV = Math.max(0, Math.min(29, currentV + step)); 
+        initVerse(); 
+    }
+
+    window.onload = initVerse;
+</script>
+</body>
+</html>
