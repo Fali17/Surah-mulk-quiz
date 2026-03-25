@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surah Al-Mulk Quiz</title>
+    <title>Surah Al-Mulk Quiz - Ultimate Edition</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; --error: #e74c3c; --success: #27ae60; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; text-align: center; transition: 0.3s; margin: 0; }
         .quiz-container { max-width: 850px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); position: relative; }
         
-        .stats { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; padding: 12px 20px; background: #f0f0f0; border-radius: 10px; }
+        .stats { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; padding: 12px 20px; background: #f0f0f0; border-radius: 10px; font-size: 1.1rem; }
         .drop-zone { min-height: 120px; border: 2px dashed var(--accent); border-radius: 15px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; padding: 20px; position: relative; background: #fafafa; }
         .word-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; min-height: 100px; }
-        
         .word { padding: 12px 18px; border-radius: 8px; background: var(--accent); color: white; cursor: pointer; border: none; font-size: 1.1rem; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .word.placed { background: var(--primary); cursor: default; }
-        .feedback-icon { position: absolute; top: -15px; right: 10px; font-size: 2rem; background: white; border-radius: 50%; padding: 0 5px; }
+        .word.placed { background: var(--primary); cursor: default; box-shadow: none; }
+        
+        .feedback-icon { position: absolute; top: -15px; right: 10px; font-size: 2rem; background: white; border-radius: 50%; padding: 0 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .hidden { display: none !important; }
         
-        /* Modified Zen Mode Logic */
+        /* Zen Mode Logic - Only hides distractions */
         body.zen-mode .zen-hide { display: none !important; }
         body.zen-mode .quiz-container { border: 1px solid #eee; box-shadow: none; }
-
+        
         button, select { padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; border: 1px solid #ccc; transition: 0.2s; font-size: 1rem; }
         .btn-play { background: #8e44ad; color: white; border: none; }
         .btn-hint { background: var(--error); color: white; border: none; }
@@ -50,9 +50,14 @@
     <div style="margin-bottom: 15px;">
         <select id="reciter">
             <option value="KIDS">Minshawi (Kids Repeat - Auto Stop)</option>
-            <option value="MINSHAWI_SOLO">Minshawi (Solo Murattal)</option>
-            <option value="ALAFASY">Mishary Alafasy</option>
-            <option value="HUSARY">Al-Husary (Muallim)</option>
+            <option value="Minshawy_Murattal_128kbps">Minshawi (Solo Murattal)</option>
+            <option value="Alafasy_128kbps">Mishary Alafasy</option>
+            <option value="Abdul_Basit_Murattal_192kbps">AbdulBaset AbdulSamad</option>
+            <option value="Husary_128kbps">Mahmoud Khalil Al-Husary (Solo)</option>
+            <option value="Husary_Muallim_128kbps">Mahmoud Khalil Al-Husary (Teacher)</option>
+            <option value="Abdurrahmaan_As-Sudais_192kbps">Abdur-Rahman as-Sudais</option>
+            
+            <option value="MaherAlMuaiqly128kbps">Maher Al Muaiqly</option>
         </select>
     </div>
 
@@ -61,7 +66,7 @@
     </div>
 
     <div class="zen-hide" style="font-size: 0.9rem; color: #666; margin: 15px 0;">
-        Listened: <strong id="listen-stat">0</strong> | Hints: <strong id="hint-stat">0</strong>
+        Listened: <strong id="listen-stat">0</strong> times &nbsp;|&nbsp; Hints Used: <strong id="hint-stat">0</strong>
     </div>
 
     <div class="word-bank" id="word-bank"></div>
@@ -69,15 +74,15 @@
     <div id="controls" style="margin-top: 25px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
         <button class="btn-play" onclick="playAudio()">🔊 PLAY VERSE</button>
         <button class="btn-hint" onclick="useHint()">💡 HINT (-5 pts)</button>
-        <button onclick="navVerse(-1)">⬅ Prev</button>
-        <button onclick="navVerse(1)">Next ➡</button>
+        <button onclick="navVerse(-1)">⬅ Prev Verse</button>
+        <button onclick="navVerse(1)">Next Verse ➡</button>
     </div>
 </div>
 
 <audio id="audio-player"></audio>
 
 <script>
-    // Hardcoded segments for Surah 67 (Kids Repeat)
+    // Exact segments from your file for Surah 67 (Kids Repeat)
     const kidsSegments = {
         1: [0, 16053], 2: [16053, 39181], 3: [39181, 72065], 4: [72065, 94011], 5: [94011, 127004],
         6: [127004, 144538], 7: [144538, 162447], 8: [162447, 193633], 9: [193633, 229249], 10: [229249, 250695],
@@ -135,6 +140,7 @@
         document.getElementById('score').innerText = score;
         document.getElementById('listen-stat').innerText = listens;
         document.getElementById('hint-stat').innerText = hints;
+        
         const drop = document.getElementById('drop-zone');
         const bank = document.getElementById('word-bank');
         
@@ -204,10 +210,9 @@
                 }
             }, 50);
         } else {
+            // Reciter ID exactly matches EveryAyah folder names!
             const vStr = String(vNum).padStart(3, '0');
-            let folder = (recId === "MINSHAWI_SOLO") ? "Minshawi_Murattal_128kbps" : 
-                         (recId === "ALAFASY") ? "Alafasy_128kbps" : "Husary_Muallim_128kbps";
-            player.src = `https://everyayah.com/data/${folder}/067${vStr}.mp3`;
+            player.src = `https://everyayah.com/data/${recId}/067${vStr}.mp3`;
             player.play();
         }
         render();
